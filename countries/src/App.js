@@ -28,7 +28,6 @@ const App = (props) => {
   }, [])
 
   useEffect(() => {
-    console.log("query", query)
     setFoundCountries(countries.filter(country =>
       country.name.toLowerCase().includes(query.toLowerCase())))
   }, [query])

@@ -4,16 +4,16 @@ import axios from 'axios'
 const Country = ({ country }) => {
   const [weather, setWeather] = useState(undefined)
 
-  const URL = 'http://api.weatherstack.com/current?access_key=7f8e4133a8e1d53a24495384d0948907&query=' + country.capital
 
   useEffect(() => {
+    const URL = 'http://api.weatherstack.com/current?access_key=7f8e4133a8e1d53a24495384d0948907&query=' + country.capital
     axios
       .get(URL)
       .then(response =>
         setWeather(response.data))
       .catch(error => console.log(error))
   }
-    , [])
+    ,[])
 
   const showWeather = () => {
     return (
@@ -39,7 +39,7 @@ const Country = ({ country }) => {
       <div>population {country.population}</div>
       <h3>languages</h3>
       <ul>
-        {country.languages.map(language => <li>{language.name}</li>)}
+        {country.languages.map(language => <li key={language.name}>{language.name}</li>)}
       </ul>
       <div>
         <img src={country.flag} width="128" height="128" />
