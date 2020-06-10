@@ -1,98 +1,48 @@
 import React, { useState, useEffect } from 'react'
 import personService from './services/ppl'
 import Person from './components/person'
+import Notification from './components/notification'
+import PersonForm from './components/personForm'
 import './index.css'
 
-
-const includesName = (listObj, name) => {
-  for (var i = 0; i < listObj.length; i++) {
-    if (listObj[i].name === name) {
-      return true
-    }
-  } return false
-}
-
-const filteredNames = (listObj, searchedPhrase) => {
-  const foundObj = []
-  for (var i = 0; i < listObj.length; i++) {
-    if ((listObj[i].name.toLowerCase().includes(searchedPhrase.toLowerCase()))
-      && (searchedPhrase !== "")) {
-      foundObj.push(listObj[i])
-    }
-  }
-  return (foundObj)
-}
-
-const Notification = ({ message, className }) => {
-  if (message === null) {
-    return null
-  }
-  return (
-    <div className={className}>
-      {message}
-    </div>
-  )
-}
 
 
 const App = (props) => {
 
   const [persons, setPersons] = useState([])
-  const [newName, setNewName] = useState('')
-  const [newNumber, setNewNumber] = useState('')
-  const [phrase, setPhrase] = useState('')
-  const [foundNames, setFoundNames] = useState([])
+  const [newPerson, setNewPerson] = useState({ "name": "", "number": "" })
+  const [query, setQuery] = useState('')
   const [message, setMessage] = useState(null)
   const [className, setClassName] = useState('notification')
 
 
-  const peopleToShow = phrase === ""
-    ? persons
-    : foundNames
-
-  const delPerson = (name, id) => {
+  const deletePerson = (name, id) => {
     if (window.confirm(`Delete ${name}?`)) {
       personService
         .del(id)
       setPersons(persons.filter(person => person.id !== id))
     }
-
   }
 
-  const displayPerson = () => peopleToShow.map(person =>
-    <Person
-      key={person.id}
-      person={person}
-      deletePerson={() => delPerson(person.name, person.id)}
-    />
-  )
-
-  const validateName = (PersonObject) => {
-    if (PersonObject.name.length === 0) {
-      console.log('zero length name')
-      return true
-    }
-  }
 
   const addPerson = (event) => {
     event.preventDefault()
     const newPersonObject = {
-      name: newName,
       id: persons.length + 1,
-      number: newNumber
+      name: newPerson.name,
+      number: newPerson.number,
     }
 
-    if (validateName(newPersonObject)) {
-      return
-    }
 
-    if (!includesName(persons, newPersonObject.name)) {
+    if (newPersonObject.name.length === 0) { return }
+
+    if (persons.filter(person =>
+      person.name === newPersonObject.name).length === 0) {
+
       personService
         .create(newPersonObject)
         .then(() => {
           setPersons(persons.concat(newPersonObject))
-          setNewName('')
-          setNewNumber('')
           setClassName('notification')
           setMessage(`Added ${newPersonObject.name}`)
           setTimeout(() => {
@@ -101,9 +51,8 @@ const App = (props) => {
         })
         .catch(error => {
           setClassName('error')
-          setMessage(`${error.response.data.error}`)
+          setMessage(`Something went wrong: ${error.response.data.error}`)
           console.log(error.response)
-
           setTimeout(() => {
             setMessage(null)
           }, 5000)
@@ -112,12 +61,14 @@ const App = (props) => {
       if (window.confirm(`${newPersonObject.name} is already added to phonebook, 
       replace the old number with a new one?`)) {
         const person = persons.find(person => person.name === newPersonObject.name)
-        const changePerson = { ...person, number: newPersonObject.number }
+        const updatedPerson = { ...person, number: newPersonObject.number }
         personService
-          .update(person.id, changePerson)
+          .update(person.id, updatedPerson)
           .then(returnedPerson => {
             setPersons(persons.map(person =>
-              person.name !== newPersonObject.name ? person : returnedPerson))
+              person.name !== newPersonObject.name
+                ? person
+                : returnedPerson))
 
             setClassName('notification')
             setMessage(`Upadated ${newPersonObject.name}`)
@@ -126,7 +77,7 @@ const App = (props) => {
               setMessage(null)
             }, 5000)
           })
-          .catch(error => {
+          .catch(err => {
             setClassName('error')
             setMessage(`${newPersonObject.name} was already removed from server`)
             setTimeout(() => {
@@ -135,28 +86,27 @@ const App = (props) => {
             setPersons(persons.filter(person =>
               person.name !== newPersonObject.name))
           })
-
-        setNewName('')
-        setNewNumber('')
       }
     }
-
+    setNewPerson({ "name": "", "number": "" })
   }
 
   const handleNameChange = (event) => {
-    // console.log(event.target.value)
-    setNewName(event.target.value)
+    setNewPerson({
+      ...newPerson,
+      "name": event.target.value
+    })
   }
 
   const handleNumberChange = (event) => {
-    // console.log(event.target.value)
-    setNewNumber(event.target.value)
+    setNewPerson({
+      ...newPerson,
+      "number": event.target.value
+    })
   }
 
-  const handleFilter = (event) => {
-    setPhrase(event.target.value)
-    foundNames.map(obj => console.log(obj.name, obj.number))
-    setFoundNames(filteredNames(persons, event.target.value))
+  const handleQueryChange = (event) => {
+    setQuery(event.target.value)
   }
 
   useEffect(() => {
@@ -164,7 +114,18 @@ const App = (props) => {
       .getAll()
       .then(persons =>
         setPersons(persons))
+      .catch(err => console.log("Could not GET data; ", err))
   }, [])
+
+
+  const filterPersons = (query) => {
+    return persons.filter(person =>
+      person.name.toLowerCase().includes(query.toLowerCase()))
+  }
+
+  const peopleToShow = query === ""
+    ? persons
+    : filterPersons(query)
 
   return (
     <div>
@@ -172,24 +133,24 @@ const App = (props) => {
       <Notification message={message} className={className} />
 
       <div>
-        filter shown with: <input value={phrase} onChange={handleFilter} />
+        filter shown with: <input value={query} onChange={handleQueryChange} />
       </div>
 
       <h2>add a new</h2>
-      <form onSubmit={addPerson}>
-        <div>
-          name: <input value={newName} onChange={handleNameChange} name='newName' />
-        </div>
-        <div>
-          number: <input value={newNumber} onChange={handleNumberChange} name='newNumber' />
-        </div>
-        <div>
-          <button type="submit">add</button>
-        </div>
-      </form>
+      <PersonForm person={newPerson}
+        addPerson={addPerson}
+        handleNameChange={handleNameChange}
+        handleNumberChange={handleNumberChange}
+      />
       <h2>Numbers</h2>
       <div>
-        {displayPerson()}
+        {peopleToShow.map(person =>
+          <Person
+            key={person.id}
+            person={person}
+            deletePerson={() => deletePerson(person.name, person.id)}
+          />
+        )}
       </div>
 
     </div>
