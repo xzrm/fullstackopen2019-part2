@@ -28,7 +28,7 @@ const App = (props) => {
   const addPerson = (event) => {
     event.preventDefault()
     const newPersonObject = {
-      id: persons.length + 1,
+      id: persons.length + 1, //poor practise
       name: newPerson.name,
       number: newPerson.number,
     }
@@ -41,10 +41,10 @@ const App = (props) => {
 
       personService
         .create(newPersonObject)
-        .then(() => {
-          setPersons(persons.concat(newPersonObject))
+        .then(newPerson => {
+          setPersons(persons.concat(newPerson))
           setClassName('notification')
-          setMessage(`Added ${newPersonObject.name}`)
+          setMessage(`Added ${newPerson.name}`)
           setTimeout(() => {
             setMessage(null)
           }, 5000)

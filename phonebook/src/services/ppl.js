@@ -1,6 +1,10 @@
 import axios from 'axios'
 
-const baseUrl = '/persons'
+/* for the static build of the front end in part 3 
+baseUrl should be const baseUrl = 'api/persons'
+*/
+
+const baseUrl = 'persons'
 
 const getAll = () => {
   const request = axios.get(baseUrl)
